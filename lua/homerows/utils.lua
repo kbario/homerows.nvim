@@ -1,5 +1,7 @@
 local pth = require("plenary.path")
 local settings = require("homerows.settings").settings
+local log = require("homerows.dev")
+local CURRENT_LAYOUT = require("homerows.settings").current_layout
 
 local M = {}
 
@@ -43,16 +45,17 @@ M.is_nil = function(input)
  return input == nil
 end
 
-local function get_config_path(type)
-  local path = vim.fn.stdpath(type)
+local function get_config_path()
+  local path = vim.fn.stdpath("data")
   return string.format("%s%shomerows.json", path, M.get_slash())
 end
 
-local function read_config(path)
-  return vim.fn.json_decode(pth:new(path):read())
+local function get_layouts_path()
+  local path = vim.fn.stdpath("data")
+  return string.format("%s%shomerows_layouts.json", path, M.get_slash())
 end
 
-local function read_layouts(path)
+local function read_config(path)
   return vim.fn.json_decode(pth:new(path):read())
 end
 
@@ -60,8 +63,8 @@ local function write_config(path, data)
   return pth:new(path):write(vim.fn.json_encode(data), "w")
 end
 
-M.load_config = function(type)
-  local path = get_config_path(type)
+M.load_config = function()
+  local path = get_config_path()
   local ok, config = pcall(read_config, path)
   if ok then
     return config
@@ -70,19 +73,24 @@ M.load_config = function(type)
   end
 end
 
-M.save_config = function(type, data)
-  local path = get_config_path(type)
+M.save_config = function(data)
+  local path = get_config_path()
   return write_config(path, data)
 end
 
-M.load_layouts = function(type)
-  local path = get_config_path(type)
+M.load_layouts = function()
+  local path = get_layouts_path()
   local ok, config = pcall(read_config, path)
   if ok then
     return config
   else
     return {}
   end
+end
+
+M.save_layouts = function(data)
+  local path = get_layouts_path()
+  return write_config(path, data)
 end
 
 local function valid_option(input, valid_inputs)
@@ -101,15 +109,26 @@ local function valid_option(input, valid_inputs)
   end
 end
 
+local function get_layout_keys(layouts_settings)
+  local layouts = {}
+  for k, _ in pairs(layouts_settings) do
+    table.insert(layouts, k)
+  end
+  return layouts
+end
+
 --[[ function returning an object with validated user homerows settings ]]
-M.validate_options = function (config_input, global)
+M.validate_options = function (config_input, layouts)
   local output = {}
-  local saved_config = M.load_config("data")
+  local saved_config = M.load_config()
 
   for k, v in pairs(settings) do
-    if valid_option(config_input[k], v['values']) then
+    if v["replace_values"] then
+      v["values"] = get_layout_keys(layouts)
+    end
+    if valid_option(config_input[k], v['values']) and v['allow_config_input'] then
       output[k] = config_input[k]
-    elseif not M.is_nil(saved_config[k]) and global == false then
+    elseif not M.is_nil(saved_config[k]) then
       output[k] = saved_config[k]
     else
       output[k] = v['default']

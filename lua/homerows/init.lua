@@ -1,5 +1,4 @@
 local utes = require("homerows.utils")
-local log = require("homerows.dev")
 local HomerowsTo = require("homerows.commands").HomerowsTo
 
 M = {}

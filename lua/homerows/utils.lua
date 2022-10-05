@@ -1,7 +1,7 @@
 local pth = require("plenary.path")
 local settings = require("homerows.settings").settings
 local log = require("homerows.dev")
-local CURRENT_LAYOUT = require("homerows.settings").current_layout
+local A_STRING = require("homerows.settings").A_STRING
 
 local M = {}
 
@@ -103,6 +103,8 @@ local function valid_option(input, valid_inputs)
     for _, v in pairs(valid_inputs) do
       if input == v then
         return true
+      elseif v == A_STRING then
+        return M.is_string(input)
       end
     end
     return false

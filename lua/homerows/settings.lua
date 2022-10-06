@@ -17,10 +17,17 @@ return {
       ["values"] = {},
       ["default"] = "qwerty",
     },
-    ["add_keymap"] = {
+    ["add_change_keymap"] = {
       ["allow_config_input"] = true,
       ["replace_values"] = false,
       ["desc"] = "add the keymap on init or add your own",
+      ["values"] = { true, false, A_STRING },
+      ["default"] = true,
+    },
+    ["add_print_keymap"] = {
+      ["allow_config_input"] = true,
+      ["replace_values"] = false,
+      ["desc"] = "add the keymap to print what layout homerows is using",
       ["values"] = { true, false, A_STRING },
       ["default"] = true,
     }

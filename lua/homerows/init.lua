@@ -1,5 +1,6 @@
 local utes = require("homerows.utils")
 local HomerowsTo = require("homerows.commands").HomerowsTo
+local HomerowsAre = require("homerows.commands").HomerowsAre
 
 M = {}
 
@@ -35,7 +36,20 @@ local function handle_layouts(config)
   return layouts
 end
 
-local function handle_keymap(add)
+local function handle_print_keymap(add)
+  if utes.is_string(add) then
+    vim.keymap.set("n", add, function()
+      local layout = vim.fn.input("change layout to:")
+      HomerowsTo(layout)
+    end)
+  elseif add then
+    vim.keymap.set("n", "<leader>hra", function()
+      HomerowsAre()
+    end)
+  end
+end
+
+local function handle_change_keymap(add)
   if utes.is_string(add) then
     vim.keymap.set("n", add, function()
       local layout = vim.fn.input("change layout to:")
@@ -60,7 +74,8 @@ M.setup = function(config)
 
   utes.save_config(output)
 
-  handle_keymap(config["add_keymap"])
+  handle_change_keymap(config["add_change_keymap"])
+  handle_print_keymap(config["add_print_keymap"])
 
   require("homerows.commands")
 end

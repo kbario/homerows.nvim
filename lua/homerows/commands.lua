@@ -5,6 +5,8 @@ local function printer(reason, input)
     print(string.format('no layouts called %s', input))
   elseif reason == "change_layout" then
     print(string.format("changed layout to %s", input))
+  elseif reason == "layout_is" then
+    print(string.format("current layout is %s", input))
   end
 end
 
@@ -86,6 +88,16 @@ local function HomerowsTo(layout)
   vim.api.nvim_command(":source $MYVIMRC")
 end
 
+local function HomerowsAre()
+  local prefs = require("homerows.utils").load_config()
+  printer("layout_is", prefs.current_layout)
+end
+
+vim.api.nvim_create_user_command("HomerowsAre", HomerowsAre, {
+  desc = "Prints out the keyboard layout homerows is using",
+  nargs = 0,
+})
+
 vim.api.nvim_create_user_command("HomerowsTo", function(opts)
   HomerowsTo(opts.fargs)
 end, {
@@ -96,4 +108,5 @@ end, {
 
 return {
   HomerowsTo = HomerowsTo,
+  HomerowsAre = HomerowsAre,
 }

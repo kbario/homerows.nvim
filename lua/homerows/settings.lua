@@ -30,6 +30,13 @@ return {
       ["desc"] = "add the keymap to print what layout homerows is using",
       ["values"] = { true, false, A_STRING },
       ["default"] = true,
+    },
+    ["custom_layouts"] = {
+      ["allow_config_input"] = true,
+      ["replace_values"] = false,
+      ["desc"] = "add the keymap to print what layout homerows is using",
+      ["values"] = { A_STRING },
+      ["default"] = {},
     }
   }
 }

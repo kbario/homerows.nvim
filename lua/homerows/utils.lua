@@ -42,7 +42,7 @@ M.normalize_path = function(item)
 end
 
 M.is_nil = function(input)
- return input == nil
+  return input == nil
 end
 
 local function get_config_path()
@@ -120,20 +120,22 @@ local function get_layout_keys(layouts_settings)
 end
 
 --[[ function returning an object with validated user homerows settings ]]
-M.validate_options = function (config_input, layouts)
+M.validate_options = function(config_input, layouts)
   local output = {}
   local saved_config = M.load_config()
 
   for k, v in pairs(settings) do
-    if v["replace_values"] then
-      v["values"] = get_layout_keys(layouts)
-    end
-    if valid_option(config_input[k], v['values']) and v['allow_config_input'] then
-      output[k] = config_input[k]
-    elseif not M.is_nil(saved_config[k]) then
-      output[k] = saved_config[k]
-    else
-      output[k] = v['default']
+    if k ~= "custom_layouts" then
+      if v["replace_values"] then
+        v["values"] = get_layout_keys(layouts)
+      end
+      if valid_option(config_input[k], v['values']) and v['allow_config_input'] then
+        output[k] = config_input[k]
+      elseif not M.is_nil(saved_config[k]) then
+        output[k] = saved_config[k]
+      else
+        output[k] = v['default']
+      end
     end
   end
 
@@ -141,4 +143,3 @@ M.validate_options = function (config_input, layouts)
 end
 
 return M
-

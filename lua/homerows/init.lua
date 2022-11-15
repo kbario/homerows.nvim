@@ -39,13 +39,12 @@ end
 local function handle_print_keymap(add)
   if utes.is_string(add) then
     vim.keymap.set("n", add, function()
-      local layout = vim.fn.input("change layout to:")
-      HomerowsTo(layout)
-    end)
+      HomerowsAre()
+    end, { desc = "homerows: print the current layout"})
   elseif add then
     vim.keymap.set("n", "<leader>hra", function()
       HomerowsAre()
-    end)
+    end, { desc = "homerows: print the current layout"})
   end
 end
 
@@ -54,12 +53,12 @@ local function handle_change_keymap(add)
     vim.keymap.set("n", add, function()
       local layout = vim.fn.input("change layout to:")
       HomerowsTo(layout)
-    end)
+    end, { desc = "homerows: change the current layout"})
   elseif add then
     vim.keymap.set("n", "<leader>hrt", function()
       local layout = vim.fn.input("change layout to:")
       HomerowsTo(layout)
-    end)
+    end, { desc = "homerows: change the current layout"})
   end
 end
 

@@ -5,4 +5,8 @@ local layouts = utes.load_layouts()
 local prefs = utes.load_config()
 
 local layout = layouts[prefs["current_layout"]]
-return vim.tbl_extend("force", layout, prefs["custom_keys"])
+for key, value in pairs(prefs["custom_keys"]) do
+    layout[key] = layout[value]
+end
+
+return layout

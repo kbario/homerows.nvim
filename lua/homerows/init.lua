@@ -1,86 +1,54 @@
-local utes = require("homerows.utils")
-local HomerowsTo = require("homerows.commands").HomerowsTo
-local HomerowsAre = require("homerows.commands").HomerowsAre
+local u = require("homerows.utils")
+local log = require("homerows.dev")
 
 M = {}
 
-local function inputs_are_invalid(inputs)
-  local one = inputs == nil
-  local two = not utes.is_table(inputs)
-
-  return one and two
+---For use with lazy.nvim
+---Build the bare-bones config for use during lazy setup
+---@return nil
+M.build = function()
+  local config = u.merge_config({})
+  u.save_config(config)
 end
 
-local function add_to_layouts(layouts, table)
-  for k, v in pairs(table) do
-    layouts[k] = v
-  end
-  return layouts
+---Set up homerows
+---@param user_config HomerowsConfig
+---@return HomerowsConfig
+M.setup = function(user_config)
+  local config = u.merge_config(user_config)
+  u.add_keymaps(config)
+  u.save_config(config)
+  return config
 end
 
-local function combine_layouts(defaults, inputs)
-  if inputs_are_invalid(inputs) then
-    return defaults
-  end
-
-  local layouts = {}
-  layouts = add_to_layouts(layouts, defaults)
-  layouts = add_to_layouts(layouts, inputs)
-  return layouts
-end
-
-local function handle_layouts(config)
-  local default_layouts = require("homerows.layouts")
-  local layouts = combine_layouts(default_layouts, config.custom_layouts)
-  utes.save_layouts(layouts)
-  return layouts
-end
-
-local function handle_print_keymap(add)
-  if utes.is_string(add) then
-    vim.keymap.set("n", add, function()
-      HomerowsAre()
-    end, { desc = "homerows: print the current layout" })
-  elseif add then
-    vim.keymap.set("n", "<leader>hra", function()
-      HomerowsAre()
-    end, { desc = "homerows: print the current layout" })
-  end
-end
-
-local function handle_change_keymap(add)
-  if utes.is_string(add) then
-    vim.keymap.set("n", add, function()
-      local layout = vim.fn.input("change layout to:")
-      HomerowsTo(layout)
-    end, { desc = "homerows: change the current layout" })
-  elseif add then
-    vim.keymap.set("n", "<leader>hrt", function()
-      local layout = vim.fn.input("change layout to:")
-      HomerowsTo(layout)
-    end, { desc = "homerows: change the current layout" })
-  end
-end
-
-M.setup = function(config)
-  if not utes.is_table(config) then
-    config = {}
-  end
-
-  local layouts = handle_layouts(config)
-
-  local output = utes.validate_options(config, layouts)
-
-  utes.save_config(output)
-
-  handle_change_keymap(config["add_change_keymap"])
-  handle_print_keymap(config["add_print_keymap"])
-
-  require("homerows.commands")
-end
-
+---For use with packer.nvim, etc.
+---returns the current layout with the custom keys
+---@return Layout
 M.hr = function()
-  return require("homerows.homerows")
+  local config = u.load_config()
+  local layout = config.layouts[config.current_layout]
+  for key, value in pairs(config.custom_keys) do
+    layout[key] = layout[value]
+  end
+
+  return layout
 end
+
+---For use with lazy.nvim.
+---Source the homerows config from lazy to use in keys, opts, etc.
+---returns The current layout with custom keys
+---@return Layout
+M.lazy_hr = function()
+  local plugin = require("lazy.core.config").spec.plugins["homerows.nvim"]
+  local hr_opts = require("lazy.core.plugin").values(plugin, "opts", false)
+  local config = u.merge_config(hr_opts or {})
+  local layout = config.layouts[config.current_layout]
+  for key, value in pairs(config.custom_keys) do
+    layout[key] = layout[value]
+  end
+
+  return layout
+end
+
 
 return M

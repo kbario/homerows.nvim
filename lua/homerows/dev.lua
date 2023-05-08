@@ -1,4 +1,4 @@
 return require("plenary.log").new({
-  plugin = "homerows",
-  level = "info"
+    plugin = "homerows",
+    level = "info"
 })

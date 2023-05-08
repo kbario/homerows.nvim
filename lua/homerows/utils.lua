@@ -1,145 +1,90 @@
-local pth = require("plenary.path")
-local settings = require("homerows.settings").settings
-local log = require("homerows.dev")
-local A_STRING = require("homerows.settings").A_STRING
+---@type HomerowsHelper
+local h = require("homerows.helpers")
+local commands = require("homerows.commands")
+local uv = vim.loop
 
+---@class HomerowsUtils
 local M = {}
 
-M.is_dar = vim.loop.os_uname().sysname == "Darwin"
-M.is_lin = vim.fn.has "linux" == 1
-M.is_mac = vim.fn.has "macunix" == 1
-M.is_win = vim.fn.has "win32" == 1 or vim.fn.has "win64" == 1
-M.is_uni = vim.fn.has "unix" == 1
-M.s_name = vim.loop.os_uname().sysname
-
-M.get_slash = function()
-  if M.is_win then
-    return "\\"
-  else
-    return "/"
-  end
-end
-
-M.is_table = function(thing)
-  return type(thing) == "table"
-end
-
-M.is_string = function(thing)
-  if type(thing) == "string" then
-    if thing ~= "" or thing ~= " " then
-      return true
-    end
-  end
-  return false
-end
-
-M.project_key = function()
-  return vim.loop.cwd()
-end
-
-M.normalize_path = function(item)
-  return pth:new(item):make_relative(M.project_key())
-end
-
-M.is_nil = function(input)
-  return input == nil
-end
-
 local function get_config_path()
-  local path = vim.fn.stdpath("data")
-  return string.format("%s%shomerows.json", path, M.get_slash())
+  return string.format("%s%shomerows.json", vim.fn.stdpath("data"), h.get_slash())
 end
 
-local function get_layouts_path()
-  local path = vim.fn.stdpath("data")
-  return string.format("%s%shomerows_layouts.json", path, M.get_slash())
+---Read a json file
+---@return HomerowsConfig
+local function read_config()
+  local fd = assert(uv.fs_open(get_config_path(), "r", 438)) -- for some reason test won't pass with absolute
+  local stat = assert(uv.fs_fstat(fd))
+  local data = assert(uv.fs_read(fd, stat.size, 0))
+  assert(uv.fs_close(fd))
+  return vim.fn.json_decode(data)
 end
 
-local function read_config(path)
-  return vim.fn.json_decode(pth:new(path):read())
+---Write a json file with provided data
+---@param data string|table # the data to be written
+---@return nil
+local function write_config(data)
+  local f = assert(uv.fs_open(get_config_path(), "w", 438))
+  uv.fs_write(f, vim.fn.json_encode(data), -1)
+  uv.fs_close(f)
 end
 
-local function write_config(path, data)
-  return pth:new(path):write(vim.fn.json_encode(data), "w")
-end
-
+---load saved user config
+---@return HomerowsConfig
 M.load_config = function()
-  local path = get_config_path()
-  local ok, config = pcall(read_config, path)
-  if ok then
-    return config
-  else
-    return {}
-  end
+  local ok, config = pcall(read_config)
+  if ok then return config else return {} end
 end
 
-M.save_config = function(data)
-  local path = get_config_path()
-  return write_config(path, data)
+---save user config
+---@param user_config HomerowsConfig
+---@return nil
+M.save_config = function(user_config)
+  return write_config(user_config)
 end
 
-M.load_layouts = function()
-  local path = get_layouts_path()
-  local ok, config = pcall(read_config, path)
-  if ok then
-    return config
-  else
-    return {}
-  end
+---get the list of layouts in the current layouts config
+---@return string[]
+M.get_layouts = function()
+  local config = M.load_config()
+  return config.layouts
 end
 
-M.save_layouts = function(data)
-  local path = get_layouts_path()
-  return write_config(path, data)
-end
+---@type HomerowsConfig
+local default_config = {
+  add_to_keymap = false,
+  add_are_keymap = false,
+  custom_keys = {},
+  layouts = {},
+  prefs = {},
+}
 
-local function valid_option(input, valid_inputs)
-  if M.is_nil(input) then
-    return false
-  end
-  if M.is_string(valid_inputs) then
-    return input == valid_inputs
-  elseif M.is_table(valid_inputs) then
-    for _, v in pairs(valid_inputs) do
-      if input == v then
-        return true
-      elseif v == A_STRING then
-        return M.is_string(input)
-      end
-    end
-    return false
-  end
-end
-
-local function get_layout_keys(layouts_settings)
-  local layouts = {}
-  for k, _ in pairs(layouts_settings) do
-    table.insert(layouts, k)
-  end
-  return layouts
-end
-
---[[ function returning an object with validated user homerows settings ]]
-M.validate_options = function(config_input, layouts)
-  local output = {}
+---create config from default, persisted user config and provided user config
+---@param user_config HomerowsConfig
+---@return HomerowsConfig
+function M.merge_config(user_config)
   local saved_config = M.load_config()
+  ---@type HomerowsConfig
+  local config = vim.tbl_extend('force', { current_layout = "qwerty" }, saved_config or {}, default_config, user_config)
+  config.layouts = vim.tbl_extend('force', require("homerows.default_layouts"), user_config.layouts or {})
+  return config
+end
 
-  for k, v in pairs(settings) do
-    if k ~= "custom_layouts" then
-      if v["replace_values"] then
-        v["values"] = get_layout_keys(layouts)
-      end
-      if valid_option(config_input[k], v['values']) and v['allow_config_input'] then
-        output[k] = config_input[k]
-      elseif not M.is_nil(saved_config[k]) then
-        output[k] = saved_config[k]
-      else
-        output[k] = v['default']
-      end
-    end
+---add the homerows keymaps based on user config
+---@param config HomerowsConfig
+function M.add_keymaps(config)
+  if h.is_string(config.add_to_keymap) or config.add_to_keymap then
+    vim.keymap.set("n", h.is_string(config.add_to_keymap) and config.add_to_keymap or "<leader>hrt",
+      function()
+        local layout = vim.fn.input("change layout to: ")
+        commands.HomerowsTo(layout)
+      end, { desc = "homerows: change the current layout" })
   end
-
-  return output
+  if h.is_string(config.add_are_keymap) or config.add_are_keymap then
+    vim.keymap.set("n", h.is_string(config.add_are_keymap) and config.add_are_keymap or "<leader>hra", function()
+      commands.HomerowsAre()
+    end, { desc = "homerows: print the current layout" })
+  end
 end
 
 return M

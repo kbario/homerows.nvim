@@ -1,0 +1,14 @@
+{
+    "workspace.library": [
+        "/Users/kylebario/.local/share/nvim/lazy/neodev.nvim/types/stable",
+        "/opt/homebrew/Cellar/neovim/0.9.0/share/nvim/runtime/lua",
+        "/Users/kylebario/.config/nvim",
+        "/Users/kylebario/.local/share/nvim/lazy/lazy.nvim",
+        "/opt/homebrew/Cellar/neovim/0.9.0/share/nvim/runtime",
+        "/opt/homebrew/Cellar/neovim/0.9.0/lib/nvim",
+        "/Users/kylebario/.local/state/nvim/lazy/readme",
+        "/Users/kylebario/projects/lua/homerows.nvim/lua",
+        "${3rd}/luassert/library"
+    ],
+    "workspace.checkThirdParty": false
+}
